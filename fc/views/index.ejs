@@ -76,6 +76,10 @@ fcApp.config(['$routeProvider', function($routeProvider){
         when('/cart/checkout',{
             templateUrl: 'templates/partials/food-order-1.ejs',
             controller: 'checkoutCtrl'
+        }).
+        when('/test/order', {
+            templateUrl: 'templates/partials/testOrder.ejs',
+            controller: 'testOrderCtrl'
         })
 }])
 

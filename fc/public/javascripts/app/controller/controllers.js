@@ -164,7 +164,7 @@ foodcourtController.controller('foodMenuCtrl', ["$scope", "$http", "orderedMenuS
 
     $scope.carts = [];
     orderedMenu.clear();
-
+    
     function show_food_in_cart(food) {
         if($scope.carts.some(function(ele){return ele._id == food._id})){
         }else{
@@ -187,4 +187,44 @@ foodcourtController.controller('foodMenuCtrl', ["$scope", "$http", "orderedMenuS
 foodcourtController.controller('checkoutCtrl', ["$scope", "orderedMenuService", function($scope, orderedMenu) {
     $scope.carts = orderedMenu.orderedMenu;
     $scope.totalPrice = {value: 0};
+}])
+
+foodcourtController.controller('testOrderCtrl', ["$scope", "orderedMenuService", function($scope, orderedMenu) {
+    function request() {
+        var data = {
+            xml: {
+                appid: "wxce7c613610288f0b",
+                mch_id: "1247358901",
+                nonce_str: "6AED000AF86A084F9CB0264161E29DD3",
+                device_info: "WEB",
+
+                body: "良食LEUNGSI-汉堡",
+                out_trade_no: 1,
+                total_fee: 1,
+                spbill_create_ip: "121.41.108.219",
+                notify_url: "https://121.41.108.219:3000/api/wechatPay/jsapiPayNotify",
+                trade_type: "JSAPI",
+
+                openid: "oo8WUt0taCqjt552htW1vw-xxxxx",
+                sign: "各种排序+key生成的那个sign"
+            }
+        };
+        $.ajax({
+            type : "POST",
+            url : "https://api.mch.weixin.qq.com/pay/unifiedorder",
+            data : data,
+            dataType : "xml",
+            success : function(d){
+                console.log("success:" + d);
+                $scope.successMessage = d;
+            },
+            error: function(d){
+                console.log(d);
+                debugger;
+                $scope.errorMessage = d.statusText;
+            }
+        });
+    }
+    $scope.test = "123";
+    request();
 }])
