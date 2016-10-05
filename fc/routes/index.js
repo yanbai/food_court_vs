@@ -789,5 +789,153 @@ router.post("/question/save_the_questionnaire", function(req, res) {
     });
 })
 
+/*微信公众平台*/
+router.get('/wei_test',function(req,res){
 
+    //function checkSignature() {
+        var signature = req.param('signature'),
+        timestamp = req.param('timestamp'),
+        nonce = req.param('nonce'),
+        echostr = req.param('echostr');
+
+        token = 'leungsi_test';
+        var tmpArr = [token,timestamp,nonce];
+        tmpArr.sort();
+        var tmpStr = tmpArr[0] + tmpArr[1] + tmpArr[2];
+        tmpStr = sha1(tmpStr);
+        if( tmpStr == signature ){
+            res.send(echostr);
+            return true;
+        }else{
+            res.send("Bad Token!");
+            return false;
+        }
+    //}
+
+
+})
+
+router.post('/wei_test',function(req,res){
+
+    //function checkSignature() {
+        var signature = req.body('signature'),
+        timestamp = req.body('timestamp'),
+        nonce = req.body('nonce'),
+        echostr = req.body('echostr');
+                    
+        token = 'leungsi_test';
+        var tmpArr = [token,timestamp,nonce];
+        tmpArr.sort();
+        var tmpStr = tmpArr[0] + tmpArr[1] + tmpArr[2];
+        tmpStr = sha1(tmpStr);
+        if( tmpStr == signature ){
+            res.send(echostr);
+            return true;
+        }else{
+            res.send("Bad Token!");
+            return false;
+        }
+    //}
+})
+
+// oauth
+router.get('/oauth_response',function(req,res){
+    var _r = res;
+
+    var $Code = "",
+        $State = "";
+
+
+    if(!req.param("code")){return false};
+    if(req.param("code"))$Code = req.param("code");
+    if(req.param("state"))$State = req.param("state");
+
+    async.waterfall([
+        function(cb){
+            https.get("https://api.weixin.qq.com/sns/oauth2/access_token?appid="+settings.appid+"&secret="+settings.secret+"&code="+$Code+"&grant_type=authorization_code", function(res) {
+                var size = 0;
+                var chunks = [];
+                var data = "";
+                res.on('data', function(chunk){
+                  size += chunk.length;
+                  chunks.push(chunk);
+                });
+                res.on('end', function(){
+                    data = Buffer.concat(chunks, size);
+                    data = JSON.parse(data.toString());
+                    cb(null,data);
+                })
+            })
+        },
+
+        function(data,cb){
+            var $Access_token = data.access_token,
+                $Openid = data.openid;
+            https.get("https://api.weixin.qq.com/sns/auth?access_token="+$Access_token+"&openid="+$Openid,function(res){
+                var size = 0;
+                var chunks = [];
+                var _data = "";
+                res.on('data', function(chunk){
+                    size += chunk.length;
+                    chunks.push(chunk);
+                });
+                res.on('end', function(){
+                    _data = Buffer.concat(chunks, size);
+                    _data = JSON.parse(_data.toString());
+                    if(_data.errcode == 0 && _data.errmsg == "ok"){
+                        cb(null,data)
+                    }
+                })
+            })
+        },
+
+        function(data,cb){
+            var $Access_token = data.access_token,
+                $Openid = data.openid;
+            https.get("https://api.weixin.qq.com/sns/userinfo?access_token="+$Access_token+"&openid="+$Openid+"&lang=zh_CN", function(res){
+                var size = 0;
+                var chunks = [];
+                var user_data = "";
+                res.on('data', function(chunk){
+                    size += chunk.length;
+                    chunks.push(chunk);
+                });
+                res.on('end', function(){
+                    user_data = Buffer.concat(chunks, size);
+                    user_data = JSON.parse(user_data.toString());
+                    console.log(data);
+                    console.log(user_data);
+                    cb(null,user_data);
+                })
+            })
+        },
+
+        function(user_data,cb){
+            if($State){
+                var q_id = $State;
+                Question.getById(q_id,function(err,question_docs){
+                    Quiz.getById(q_id,function(err,quiz_docs){
+                        if(err) {req.flash('error',err); cb(err); return _r.redirect('back');}
+                        return _r.render("questionnaire/front_question_lists",{
+                            title: '问卷调查',
+                            user: req.session.user,
+                            quiz: quiz_docs,
+                            question: question_docs,
+                            user_info:user_data,
+                            success: req.flash('success').toString(),
+                            error: req.flash('error').toString()
+                        })
+                        cb(null,"render ok")
+                    })
+                })
+            }
+        }
+    ],function(err, results) {
+        console.log(err);
+        console.log(results);
+    });
+});
+
+
+/*微信公众平台*/
 module.exports = router;
